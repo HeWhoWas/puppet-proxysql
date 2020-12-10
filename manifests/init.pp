@@ -38,6 +38,10 @@
 #   The username to connect to the ProxySQL admin interface.
 # @param admin_password
 #   The password to connect to the ProxySQL admin interface.
+# @param radmin_username
+#   The username to connect to the ProxySQL admin interface remotely.
+# @param radmin_password
+#   The password to connect to the ProxySQL admin interface remotely.
 # @param stats_username
 #   The username to connect with read-only permissions to the ProxySQL admin interface.
 # @param stats_password
@@ -152,6 +156,8 @@ class proxysql (
 
   String $admin_username = 'admin',
   Sensitive[String] $admin_password = Sensitive('admin'),
+  String $radmin_username = 'radmin',
+  Optional[Sensitive[String]] $radmin_password = undef,
   String $admin_listen_ip = '127.0.0.1',
   Integer $admin_listen_port = 6032,
   String $admin_listen_socket = $proxysql::params::admin_listen_socket,
@@ -208,11 +214,17 @@ class proxysql (
   Optional[Proxysql::Rule] $mysql_rules = undef,
   Optional[Proxysql::Scheduler] $schedulers = undef,
 ) inherits proxysql::params {
+  if $radmin_password == undef {
+    $default_admin_credentials = "${admin_username}:${admin_password.unwrap}"
+  } else {
+    $default_admin_credentials = "${admin_username}:${admin_password.unwrap};${radmin_username}:${radmin_password.unwrap}"
+  }
+
   $default_settings = {
     datadir => $datadir,
     errorlog => $errorlog_file,
     admin_variables => {
-      admin_credentials => "${admin_username}:${admin_password.unwrap}",
+      admin_credentials => $default_admin_credentials,
       mysql_ifaces      => "${admin_listen_ip}:${admin_listen_port};${admin_listen_socket}",
       stats_credentials => "${stats_username}:${stats_password.unwrap}",
     },
